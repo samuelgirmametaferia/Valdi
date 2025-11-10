@@ -84,6 +84,7 @@
 
  ## Misc
  - [Third party dependencies](./docs/third-party-dependencies.md)
+ - [Frequently Asked Questions](./docs/faq.md)
 
 ## Help
  - [Support](./docs/help-support.md)
