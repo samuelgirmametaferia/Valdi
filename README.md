@@ -65,7 +65,7 @@ valdi install ios  # or android
 
 ## Why Valdi?
 
-Valdi is a cross-platform UI framework designed to solve the fundamental problem of cross-platform development: velocity vs. runtime performance. For 8 years, it has powered a large portion of Snap's production apps.
+Valdi is a cross-platform UI framework designed to solve the fundamental problem of cross-platform development: Velocity vs. Runtime Performance. For 8 years, it has powered a significant portion of Snap's production apps.
 
 ### True Native Performance
 
