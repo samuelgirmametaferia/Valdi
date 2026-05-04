@@ -366,6 +366,10 @@ valdi_compiled = rule(
             doc = "Whether to pass an explicit image asset manifest to the Valdi compiler. Accepts @valdi//bzl/valdi:use_explicit_image_manifest. Default false preserves existing compiler image discovery.",
             default = "@valdi//bzl/valdi:use_explicit_image_manifest",
         ),
+        "use_external_image_processing": attr.label(
+            doc = "Whether to split image variant generation into a separate ValdiProcessImages action. Accepts @valdi//bzl/valdi:use_external_image_processing. Requires use_explicit_image_manifest=true.",
+            default = "@valdi//bzl/valdi:use_external_image_processing",
+        ),
         # NOTE: Valdi base should probably be moved to its own directory
         "_valdi_base": attr.label(
             doc = "The base module that all Valdi modules depend on",
@@ -418,8 +422,15 @@ def _invoke_valdi_compiler(ctx, module_name, module_yaml, enable_android = True,
     # 2. Prepare the explicit input list file for the compiler.
     (explicit_input_list_file, all_inputs, module_directory) = _prepare_explicit_input_list_file(ctx, module_yaml)
     explicit_image_asset_manifest_file = None
+    declared_processed_image_files = []
+    use_external_image_processing = ctx.attr.use_external_image_processing[BuildSettingInfo].value
     if ctx.attr.use_explicit_image_manifest[BuildSettingInfo].value:
-        explicit_image_asset_manifest_file = _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, bool(enable_web), ctx.attr.inline_assets)
+        if use_external_image_processing:
+            (explicit_image_asset_manifest_file, declared_processed_image_files) = _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, bool(enable_web), ctx.attr.inline_assets, external_image_processing = True)
+        else:
+            (explicit_image_asset_manifest_file, _) = _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, bool(enable_web), ctx.attr.inline_assets, external_image_processing = False)
+    elif use_external_image_processing:
+        fail("use_external_image_processing requires use_explicit_image_manifest")
 
     localization_mode = ctx.attr.localization_mode[BuildSettingInfo].value
     js_bytecode_format = ctx.attr.js_bytecode_format[BuildSettingInfo].value
@@ -468,14 +479,27 @@ def _invoke_valdi_compiler(ctx, module_name, module_yaml, enable_android = True,
 
     args = _prepare_arguments(ctx.actions.args(), ctx.attr.log_level[BuildSettingInfo].value, localization_mode, js_bytecode_format, config_yaml_file, explicit_input_list_file, explicit_image_asset_manifest_file, module_name, base_output_dir, disable_downloadable_assets, ctx.configuration.default_shell_env, prepared_upload_artifact_file, ctx.attr.inline_assets, valdi_copts, enable_web, disable_minify_web, code_coverage, enable_android, enable_ios, emit_debug, emit_release, compiler_output_target)
 
+    compile_inputs = all_inputs + [config_yaml_file, explicit_input_list_file] + ([explicit_image_asset_manifest_file] if explicit_image_asset_manifest_file else [])
+
     #############
-    # 5. Set up the action that executes the Valdi compiler
+    # 5a. Optionally split image generation into a separate ValdiProcessImages action.
+    if declared_processed_image_files:
+        _register_image_processing_action(
+            ctx = ctx,
+            config_yaml_file = config_yaml_file,
+            explicit_image_asset_manifest_file = explicit_image_asset_manifest_file,
+            declared_output_files = declared_processed_image_files,
+        )
+        compile_inputs = compile_inputs + declared_processed_image_files
+
+    #############
+    # 5b. Set up the action that executes the Valdi compiler
 
     run_valdi_compiler(
         ctx = ctx,
         args = args,
         outputs = outputs,
-        inputs = all_inputs + [config_yaml_file, explicit_input_list_file] + ([explicit_image_asset_manifest_file] if explicit_image_asset_manifest_file else []),
+        inputs = compile_inputs,
         mnemonic = "ValdiCompile",
         progress_message = "Compiling Valdi module: " + str(ctx.label),
         use_worker = True,
@@ -717,11 +741,18 @@ def _image_manifest_input(resource, module_name, module_directory):
         "scale": scale,
     }
 
-def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, enable_web, inline_assets):
-    """Write a JSON file with the list of image assets that should be identified by the Valdi compiler."""
+def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, enable_web, inline_assets, external_image_processing = False):
+    """Write a JSON file with the list of image assets that should be identified by the Valdi compiler.
+
+    When `external_image_processing` is true the manifest's per-output `file`
+    entries are populated with paths declared via `ctx.actions.declare_file`,
+    and those declared files are returned so the caller can register a
+    `ValdiProcessImages` action that produces them.
+    """
 
     output_variants = _compute_image_asset_output_variants(enable_android, enable_ios, enable_web, inline_assets)
 
+    declared_output_files = []
     assets_by_key = {}
     for resource in ctx.files.res:
         input = _image_manifest_input(resource, module_name, module_directory)
@@ -730,11 +761,22 @@ def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directo
 
         key = "{}\n{}\n{}".format(module_name, input["relative_project_asset_directory_path"], input["asset_name"])
         if key not in assets_by_key:
+            asset_outputs = []
+            for variant in output_variants:
+                output_entry = dict(variant)
+                if external_image_processing:
+                    resolved_filename = variant["filename_pattern"].replace("$file", input["asset_name"])
+                    declared_path = "{}_processed_images/{}/{}".format(ctx.label.name, input["relative_project_asset_directory_path"], resolved_filename)
+                    declared_file = ctx.actions.declare_file(declared_path)
+                    declared_output_files.append(declared_file)
+                    output_entry["file"] = declared_file.path
+                asset_outputs.append(output_entry)
+
             assets_by_key[key] = {
                 "asset_name": input["asset_name"],
                 "inputs": [],
                 "module_name": module_name,
-                "outputs": output_variants,
+                "outputs": asset_outputs,
                 "relative_project_asset_directory_path": input["relative_project_asset_directory_path"],
             }
 
@@ -751,7 +793,47 @@ def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directo
     content = json.encode_indent({"assets": assets}, indent = "  ")
     ctx.actions.write(output = explicit_image_asset_manifest_file, content = content)
 
-    return explicit_image_asset_manifest_file
+    return (explicit_image_asset_manifest_file, declared_output_files)
+
+def _register_image_processing_action(ctx, config_yaml_file, explicit_image_asset_manifest_file, declared_output_files):
+    """Register a ValdiProcessImages action that runs the compiler in
+    `--image-processing-only` mode to generate the per-variant image files
+    declared in the manifest.
+
+    The action's inputs are intentionally restricted to the project config,
+    the manifest and the image source files (`ctx.files.res`). It does NOT
+    receive the explicit input list, dependency intermediates, or any TS/Vue
+    sources — those would needlessly invalidate this action's cache when
+    non-image files change. The `--image-processing-only` mode in the
+    compiler iterates the manifest directly without going through the
+    pipeline, so it doesn't need them.
+    """
+    args = ctx.actions.args()
+    args.use_param_file("@%s", use_always = True)
+    args.set_param_file_format("multiline")
+
+    args.add("--image-processing-only")
+    args.add("--config", config_yaml_file)
+    args.add("--explicit-image-asset-manifest", explicit_image_asset_manifest_file)
+    args.add("--log-level", ctx.attr.log_level[BuildSettingInfo].value)
+
+    inputs = ctx.files.res + [config_yaml_file, explicit_image_asset_manifest_file]
+
+    run_valdi_compiler(
+        ctx = ctx,
+        args = args,
+        outputs = declared_output_files,
+        inputs = inputs,
+        mnemonic = "ValdiProcessImages",
+        progress_message = "Processing image assets for: " + str(ctx.label),
+        # Image processing currently uses the same compiler binary; running with a
+        # worker would be possible but the protocol assumes a worker that loops on
+        # full compilations. Keep it as a one-shot action for now; revisit if action
+        # startup becomes a bottleneck.
+        use_worker = False,
+    )
+
+    return declared_output_files
 
 def _declare_compiler_outputs(ctx, module_name, module_directory, localization_mode, enable_web, code_coverage, enable_android = True, enable_ios = True, emit_debug = True, emit_release = True):
     files_output_paths = _get_files_output_paths(ctx, module_name, module_directory, localization_mode, enable_web, code_coverage, enable_android, enable_ios, emit_debug, emit_release)

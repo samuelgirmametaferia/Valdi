@@ -14,6 +14,11 @@ struct ExplicitImageAssetManifestOutput: Codable {
     let filenamePattern: String
     let scale: Double
     let platform: Platform?
+    /// Path of the pre-generated output file, relative to the manifest's base URL.
+    /// When populated, the compiler reads the file from disk instead of generating
+    /// the variant in-process; populated by Bazel when ValdiProcessImages produces
+    /// the files in a separate action.
+    let file: String?
 }
 
 struct ExplicitImageAssetManifestAsset: Codable {
@@ -38,13 +43,22 @@ extension ExplicitImageAssetManifestInput {
     }
 }
 
+extension ExplicitImageAssetManifestOutput {
+    func resolvingVariables(_ variables: [String: String]) throws -> ExplicitImageAssetManifestOutput {
+        return ExplicitImageAssetManifestOutput(filenamePattern: filenamePattern,
+                                                scale: scale,
+                                                platform: platform,
+                                                file: try file?.resolvingVariables(variables))
+    }
+}
+
 extension ExplicitImageAssetManifestAsset {
     func resolvingVariables(_ variables: [String: String]) throws -> ExplicitImageAssetManifestAsset {
         return ExplicitImageAssetManifestAsset(moduleName: moduleName,
                                                assetName: assetName,
                                                relativeProjectAssetDirectoryPath: try relativeProjectAssetDirectoryPath.resolvingVariables(variables),
                                                inputs: try inputs.map { try $0.resolvingVariables(variables) },
-                                               outputs: outputs)
+                                               outputs: try outputs.map { try $0.resolvingVariables(variables) })
     }
 }
 

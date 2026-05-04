@@ -240,6 +240,17 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+# Flag to opt in to running image processing in a separate ValdiProcessImages
+# Bazel action. Requires use_explicit_image_manifest=true. When enabled, image
+# variant generation is split out from ValdiCompile so it can be cached and
+# parallelised independently; ValdiCompile then reads the resulting files via
+# the `file` paths populated in the manifest.
+bool_flag(
+    name = "use_external_image_processing",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
 # Flag to restrict the Valdi compiler to a single build flavor (debug or release).
 # Default is "all" (generate both, subject to each module's own output_target).
 # Set to "debug" for debug-only builds (e.g. local dev) or "release" for release-only

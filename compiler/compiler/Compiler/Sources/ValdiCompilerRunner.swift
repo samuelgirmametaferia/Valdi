@@ -125,6 +125,9 @@ class ValdiCompilerRunner {
             } else if self.arguments.genStaticRes {
                 try StaticResGenerator.generate(baseUrl: baseUrl, inputFiles: self.arguments.input, to: self.arguments.out!)
                 return true
+            } else if self.arguments.imageProcessingOnly {
+                let configs = try ResolvedConfigs.from(logger: logger, baseURL: baseUrl, userConfigURL: URL.valdiUserConfigURL, args: self.arguments)
+                return try runImageProcessingOnly(configs: configs, fileManager: fileManager, baseUrl: baseUrl)
             } else if self.arguments.out != nil {
                 throw CompilerError("Specifying --out only makes sense if you're using one of the utility commands: --build OR --build-module OR --unpack-module OR --upload-module")
             }
@@ -547,6 +550,23 @@ class ValdiCompilerRunner {
         teardownCallbacks.forEach(pipeline.onTeardown)
 
         return pipeline
+    }
+
+    private func runImageProcessingOnly(configs: ResolvedConfigs, fileManager: ValdiFileManager, baseUrl: URL) throws -> Bool {
+        guard let manifest = configs.compilerConfig.explicitImageAssetManifest else {
+            throw CompilerError("--image-processing-only requires --explicit-image-asset-manifest")
+        }
+
+        let toolboxExecutable = ToolboxExecutable(logger: logger, compilerToolboxURL: configs.projectConfig.compilerToolboxURL)
+        let imageToolbox = ImageToolbox(toolboxExecutable: toolboxExecutable)
+        let imageConverter = ImageConverter(logger: logger, fileManager: fileManager, projectConfig: configs.projectConfig, imageToolbox: imageToolbox)
+
+        let generator = ExplicitImageAssetGenerator(logger: logger,
+                                                    fileManager: fileManager,
+                                                    imageToolbox: imageToolbox,
+                                                    imageConverter: imageConverter)
+        try generator.process(manifest: manifest, baseURL: baseUrl)
+        return true
     }
 
     private func getCompanionExecutable(configs: ResolvedConfigs, diskCacheProvider: DiskCacheProvider) throws -> CompanionExecutable {
