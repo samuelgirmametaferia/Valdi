@@ -50,7 +50,7 @@ def setup_dependencies(workspace_root = None):
         strip_prefix = "rules_android_ndk-0.1.3",
         url = "https://github.com/bazelbuild/rules_android_ndk/releases/download/v0.1.3/rules_android_ndk-v0.1.3.tar.gz",
         patches = [
-            "@valdi//third-party/rules_android_ndk/patches:expose_bins.patch",
+            "@valdi//registry/modules/rules_android_ndk/0.1.3/patches:rules_android_ndk.patch",
         ],
     )
 
@@ -81,7 +81,7 @@ def setup_dependencies(workspace_root = None):
         name = "rules_kotlin",
         url = "https://github.com/bazelbuild/rules_kotlin/releases/download/v1.9.0/rules_kotlin-v1.9.0.tar.gz",
         sha256 = "5766f1e599acf551aa56f49dab9ab9108269b03c557496c54acaf41f98e2b8d6",
-        patches = ["@valdi//third-party/rules_kotlin:fix_manifest_custom_package.patch"],
+        patches = ["@valdi//registry/modules/rules_kotlin/1.9.0/patches:rules_kotlin.patch"],
     )
 
     http_archive(
@@ -108,7 +108,7 @@ def setup_dependencies(workspace_root = None):
         sha256 = "5eff717c18bb513285b499add68f2331509cd4e411ff085e96a86b3342c1e5aa",
         url = "https://github.com/bazelbuild/rules_swift/releases/download/3.1.2/rules_swift.3.1.2.tar.gz",
         patch_args = ["-p1"],
-        patches = ["@valdi//third-party/rules_swift/patches:rules_swift.patch"],
+        patches = ["@valdi//registry/modules/rules_swift/3.1.2/patches:rules_swift.patch"],
     )
 
     # rules_apple relies on rules_shell starting with 4.0.0. For bzlmod users,
