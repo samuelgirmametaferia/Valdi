@@ -518,6 +518,27 @@ class ViewAttributesBinder(private val context: Context,
         updateMaskOpacity(view, 1.0f, animator)
     }
 
+    fun applyImageMask(view: View, value: Array<Any>, animator: ValdiAnimator?) {
+        val gradient = ValdiGradient.fromGradientData(value)
+        if (gradient.colors.size < 2) {
+            resetImageMask(view, animator)
+            return
+        }
+        ViewUtils.setImageMaskGradient(view, gradient)
+        // ViewGroup defaults willNotDraw=true, skipping draw() entirely.
+        // Force draw() so our mask in ValdiView.draw() runs.
+        view.setWillNotDraw(false)
+        view.invalidate()
+    }
+
+    fun resetImageMask(view: View, animator: ValdiAnimator?) {
+        ViewUtils.setImageMaskGradient(view, null)
+        if (view.background == null) {
+            view.setWillNotDraw(true)
+        }
+        view.invalidate()
+    }
+
     fun applyOnTouchDelayDuration(view: View, value: Float, animator: ValdiAnimator?) {
         // no-op for now
     }
@@ -566,6 +587,7 @@ class ViewAttributesBinder(private val context: Context,
 
         attributesBindingContext.bindUntypedAttribute("maskPath", false, this::applyMaskPath, this::resetMaskPath)
         attributesBindingContext.bindFloatAttribute("maskOpacity", false, this::applyMaskOpacity, this::resetMaskOpacity)
+        attributesBindingContext.bindArrayAttribute("maskImage", false, this::applyImageMask, this::resetImageMask)
 
         attributesBindingContext.bindCompositeAttribute("touchAreaExtensionComposite", arrayListOf(
                 CompositeAttributePart("touchAreaExtension", AttributeType.DOUBLE, true, false),

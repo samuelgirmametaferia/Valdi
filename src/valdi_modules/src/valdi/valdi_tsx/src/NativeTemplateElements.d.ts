@@ -655,6 +655,15 @@ interface ViewAttributes {
   background?: string;
 
   /**
+   * Applies an alpha mask to the view using a gradient. The gradient's alpha channel
+   * controls visibility: opaque regions remain visible, transparent regions are hidden.
+   *
+   * Use `"linear-gradient(#000000, transparent)"` to fade from fully visible to fully transparent.
+   * Use `"linear-gradient(color1 stop1, color2 stop2, ...)"` for custom stops.
+   */
+  maskImage?: string;
+
+  /**
    * Sets the background color of the view.
    *
    * `undefined` sets a clear color.
