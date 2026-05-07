@@ -803,6 +803,34 @@ valdi_test(
 )
 
 valdi_test(
+    name = "test_layout",
+    size = "large",
+    srcs = [
+        "test/integration/JSBridgeTestFixture.cpp",
+        "test/integration/JSIntegrationTestsUtils.cpp",
+        "test/integration/LayoutRegression_tests.cpp",
+        "test/integration/RuntimeTestsUtils.cpp",
+        "test/integration/TSNTestUtils.cpp",
+    ],
+    hdrs = glob(["test/integration/**/*.hpp"]),
+    deps = [
+        ":test_utils",
+        ":valdi_runtime_with_vm",
+        "//src/valdi_modules/src/valdi/persistence:persistence_native",
+        "//src/valdi_modules/src/valdi/valdi_core:valdi_core_native",
+        "//src/valdi_modules/src/valdi/valdi_protobuf:valdi_protobuf_native",
+        "//tsn",
+        "//valdi/testdata/resources/modules/local:local_native",
+        "//valdi/testdata/resources/modules/remote:remote_native",
+        "//valdi/testdata/resources/modules/remote_assets:remote_assets_native",
+        "//valdi/testdata/resources/modules/test:test_cpp",
+        "//valdi/testdata/resources/modules/test:test_native",
+        "//valdi/testdata/resources/modules/test2:test2_native",
+        "//valdi/testdata/resources/modules/test_async_strict:test_async_strict_native",
+    ],
+)
+
+valdi_test(
     name = "test_hermes",
     srcs = glob(["test/hermes/**/*.cpp"]),
     deps = [
