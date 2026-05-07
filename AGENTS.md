@@ -380,7 +380,7 @@ Use existing apps in `/apps/` as templates. Each app needs:
 - `/docs/DEV_SETUP.md` - Developer environment setup
 - `/CONTRIBUTING.md` - Contribution guidelines
 - `/CODE_OF_CONDUCT.md` - Community standards
-- `/LICENSE.md` - MIT License information
+- `/LICENSE` - MIT License information
 
 ## Toolchain Locations
 
