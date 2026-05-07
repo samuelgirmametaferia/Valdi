@@ -16,8 +16,11 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import androidx.annotation.Keep
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.inputmethod.InputConnectionCompat
 import com.snap.valdi.attributes.impl.ValdiTextViewBackgroundEffects
 import com.snap.valdi.attributes.impl.ValdiTextViewBackgroundEffectsLayoutManager
 import com.snap.valdi.attributes.impl.richtext.AttributedText
@@ -153,6 +156,15 @@ open class ValdiEditText(context: Context) : AppCompatEditText(context), ValdiTo
 
     var closesWhenReturnKeyPressedDefault = true
     var closesWhenReturnKeyPressed = true
+
+    var disableMediaContent: Boolean = false
+
+    override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
+        val ic = super.onCreateInputConnection(outAttrs) ?: return null
+        if (!disableMediaContent) return ic
+        EditorInfoCompat.setContentMimeTypes(outAttrs, arrayOf("text/plain"))
+        return InputConnectionCompat.createWrapper(ic, outAttrs) { _, _, _ -> true }
+    }
 
     var onWillChangeFunction: ValdiFunction? = null
     var onChangeFunction: ValdiFunction? = null

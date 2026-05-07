@@ -1240,6 +1240,13 @@ export interface TextFieldInteractive extends TextField {
 // @NativeTemplateElement({ios: 'SCValdiTextView', android: 'com.snap.valdi.views.ValdiEditTextMultiline', jsx: 'textview'})
 export interface TextView extends _TextView, CommonEditTextInterface {
   /**
+   * The content type identifies what keyboard keys
+   * and capabilities are available on the input and which ones appear by default.
+   * @default: 'default'
+   */
+  contentType?: TextFieldContentType;
+
+  /**
    * Setting this property to a different key type changes the visible title of the Return key.
    * Setting this property will also impact the behavior of the return key.
    * "linereturn" will let users add line returns, but any other value will be constrained to single line text
