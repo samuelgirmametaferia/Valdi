@@ -202,13 +202,6 @@ function initializeConfigFiles(
     copyBootstrapFiles(githubSourcePath, githubDestPath, replacements);
   }
 
-  const patchesSourcePath = path.join(BOOTSTRAP_DIR_PATH, 'patches');
-  if (fileExists(patchesSourcePath)) {
-    console.log(wrapInColor('Creating patches directory...', ANSI_COLORS.YELLOW_COLOR));
-    const patchesDestPath = path.join(process.cwd(), 'patches');
-    copyBootstrapFiles(patchesSourcePath, patchesDestPath, replacements);
-  }
-
   // Setup hello world application
   console.log(wrapInColor(`Initializing ${template.name} application...`, ANSI_COLORS.YELLOW_COLOR));
   const sourcePath = path.join(BOOTSTRAP_DIR_PATH, 'apps', template.path);
@@ -252,12 +245,6 @@ function applyLocalOverrides(localValdiPath: string) {
   // Remove Widgets section entirely in local mode (not available locally)
   content = content.replace(
     /# -- Valdi Widgets.*\nWIDGETS_TAG = .*\n\nbazel_dep\(name = "valdi_widgets"\)\narchive_override\(\n\s+module_name = "valdi_widgets",\n\s+urls = \[.*\],\n\s+strip_prefix = .*,\n\)/,
-    '',
-  );
-
-  // Remove websocketpp patch (registry handles it in local mode)
-  content = content.replace(
-    /\nsingle_version_override\(\n\s+module_name = "websocketpp",\n\s+patches = \[.*\],\n\s+patch_strip = \d+,\n\)/,
     '',
   );
 
