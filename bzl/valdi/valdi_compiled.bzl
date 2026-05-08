@@ -1850,6 +1850,13 @@ def _extract_npm_package_files(pkgs):
     for p in pkgs:
         # DefaultInfo.files is a depset[File]; flatten to list
         out.extend(p[DefaultInfo].files.to_list())
+
+        # ts_project with declaration=True puts .d.ts in OutputGroupInfo["types"],
+        # not in DefaultInfo. Include them so native modules ship with type declarations.
+        if OutputGroupInfo in p:
+            groups = p[OutputGroupInfo]
+            if hasattr(groups, "types"):
+                out.extend(groups.types.to_list())
     return out
 
 def _is_test_file(file_obj):

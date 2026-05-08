@@ -73,6 +73,13 @@ def _dest(rel):
     if _is_native_module_js(rel):
         return "native/" + _dest_native(rel)
 
+    # Place native module .d.ts alongside their .js counterparts in native/.
+    # Check if the corresponding .js would be a native module.
+    if rel.endswith(".d.ts") and "/web/" in rel:
+        js_rel = rel[:-5] + ".js"  # .d.ts -> .js
+        if _is_native_module_js(js_rel):
+            return "native/" + _dest_native(rel)
+
     # Handle external repository paths (short_path starts with ../ for external repos)
     # and regular source paths. Extract everything after /src/valdi_modules/src/valdi/
     # Works with any external repo name (e.g., ../<repo>/src/valdi_modules/src/valdi/...)
