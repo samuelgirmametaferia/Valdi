@@ -33,6 +33,16 @@ object SupportFonts {
                 weight = FontWeight.DEMI_BOLD)
         fontManager.loadSyncAndRegister(semiBold, context, R.font.montserrat_semi_bold)
 
+        val monoRegular = FontDescriptor(name = "robotomono-regular",
+                family = "robotomono",
+                weight = FontWeight.NORMAL)
+        fontManager.loadSyncAndRegister(monoRegular, context, R.font.roboto_mono_regular)
+
+        val monoBold = FontDescriptor(name = "robotomono-bold",
+                family = "robotomono",
+                weight = FontWeight.BOLD)
+        fontManager.loadSyncAndRegister(monoBold, context, R.font.roboto_mono_bold)
+
         fontManager.register(FontDescriptor("system"), Typeface.DEFAULT)
         fontManager.register(FontDescriptor("system-bold"), Typeface.DEFAULT_BOLD)
     }
