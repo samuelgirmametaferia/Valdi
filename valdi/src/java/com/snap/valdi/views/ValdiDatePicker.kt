@@ -168,6 +168,7 @@ open class ValdiDatePicker(context: Context) : ViewGroup(context), ValdiTouchTar
         val c = Calendar.getInstance()
         c.set(currentYear, currentMonth, currentDay)
         overlayLabel.text = DateFormat.getDateInstance(DateFormat.MEDIUM).format(c.time)
+        ViewUtils.findViewNode(this)?.invalidateLayout()
     }
 
     private fun resolveActivity(): Activity? {
